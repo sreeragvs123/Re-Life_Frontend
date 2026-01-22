@@ -2,8 +2,8 @@ import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
-import 'data/issue_data.dart';
-import 'models/issue_model.dart';
+import '../data/issue_data.dart';
+import '../models/issue_model.dart';
 
 class IssueListPage extends StatelessWidget {
   final String role;

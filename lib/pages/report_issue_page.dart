@@ -3,9 +3,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
-import 'data/issue_data.dart';
-import 'models/issue_model.dart';
-import 'utils/validators.dart';
+import '../data/issue_data.dart';
+import '../models/issue_model.dart';
+import '../utils/validators.dart';
 
 class ReportIssuePage extends StatefulWidget {
   const ReportIssuePage({super.key});

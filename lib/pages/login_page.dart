@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
-import '../utils/validators.dart';
+import '../../utils/validators.dart';
 import 'admin_home.dart';
 import 'volunteer_home.dart';
-import 'models/volunteer.dart';
+import '../models/volunteer.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../data/donation_data.dart';
-import '../models/donation.dart';
+import '../../data/donation_data.dart';
+import '../../models/donation.dart';
 
 class UserDonationPage extends StatefulWidget {
   const UserDonationPage({super.key, required String userAddress, required String userContact, required String userName});

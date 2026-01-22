@@ -1,22 +1,25 @@
-import 'dart:async';
+import 'dart:async';  // import asynchronous programming tools
 
-import 'package:flutter/material.dart';
-import 'package:razorpay_flutter/razorpay_flutter.dart';
+import 'package:flutter/material.dart'; // UI and utility import
+import 'package:razorpay_flutter/razorpay_flutter.dart'; // provide access to razorpay_APi
 
 /// A small wrapper around the `razorpay_flutter` plugin that provides a
 /// Future-based `openCheckout` API and safer handling of responses.
-class PaymentService {
-  late final Razorpay _razorpay;
 
-  // Allow configuring the key at build time with `--dart-define=RAZORPAY_KEY=...`.
+
+
+class PaymentService {
+  late final Razorpay _razorpay; // this is a private keyword - intialised later but only once(this is to make the variable immutable)
+
+
   static const String razorpayKey =
-      String.fromEnvironment('RAZORPAY_KEY', defaultValue: 'rzp_test_RJsrBHFxuUDEVX');
+      String.fromEnvironment('RAZORPAY_KEY', defaultValue: 'rzp_test_RJsrBHFxuUDEVX'); // API key
 
   Completer<PaymentSuccessResponse?>? _completer;
 
   PaymentService() {
     _razorpay = Razorpay();
-    _razorpay.on(Razorpay.EVENT_PAYMENT_SUCCESS, _handlePaymentSuccess);
+    _razorpay.on(Razorpay.EVENT_PAYMENT_SUCCESS, _handlePaymentSuccess); // make a call back on second arument if first argument returns the desired output
     _razorpay.on(Razorpay.EVENT_PAYMENT_ERROR, _handlePaymentError);
     _razorpay.on(Razorpay.EVENT_EXTERNAL_WALLET, _handleExternalWallet);
   }

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'models/missing_person.dart';
-import '../utils/validators.dart';
+import '../models/missing_person.dart';
+import '../../utils/validators.dart';
 
 class ReportMissingPersonPage extends StatefulWidget {
   const ReportMissingPersonPage({super.key});

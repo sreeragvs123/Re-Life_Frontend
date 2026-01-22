@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'login_page.dart';
-import '../utils/validators.dart';
+import '../../utils/validators.dart';
 
 class VolunteerRegistrationPage extends StatefulWidget {
   const VolunteerRegistrationPage({super.key});

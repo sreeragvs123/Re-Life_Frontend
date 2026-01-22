@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'data/volunteer_data.dart'; // Ensure this has groupTasks map
+import '../data/volunteer_data.dart'; // Ensure this has groupTasks map
 
 class VolunteerGroupPage extends StatefulWidget {
   const VolunteerGroupPage({super.key, required this.place});

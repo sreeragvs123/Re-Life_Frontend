@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'data/report_data.dart';
-import 'models/report_model.dart';
+import '../data/report_data.dart';
+import '../models/report_model.dart';
 
 class AdminReportPage extends StatelessWidget {
   const AdminReportPage({super.key, required volunteerName});

@@ -1,24 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hive/hive.dart';
-import 'package:Relife/volunteer_blood_page.dart';
-import 'package:Relife/volunteer_donation_page.dart';
-import 'package:Relife/volunteer_report_page.dart';
-import 'package:Relife/volunteer_video_page.dart';
+import 'volunteer_blood_page.dart';
+import 'volunteer_donation_page.dart';
+import 'volunteer_report_page.dart';
+import 'volunteer_video_page.dart';
 
-import 'widgets/function_card.dart';
+import '../widgets/function_card.dart';
 
 import 'product_list_page.dart';
 import 'missing_person_list_page.dart';
-import 'data/missing_person_data.dart';
+import '../data/missing_person_data.dart';
 import 'volunteer_donation_page.dart';
-import 'data/donation_data.dart';
+import '../data/donation_data.dart';
 import 'video_gallery_page.dart';
 import 'issue_list_page.dart';
 import 'volunteer_group_page.dart';
-import 'models/volunteer.dart';
-import 'user_home.dart';
-import 'admin_home.dart';
+import '../models/volunteer.dart';
+import '../pages/user_home.dart';
+import '../pages/admin_home.dart';
 
 // ✅ Hover wrapper (reusable)
 class HoverCard extends StatefulWidget {

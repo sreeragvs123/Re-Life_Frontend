@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'models/missing_person.dart';
+import '../models/missing_person.dart';
 
 class MissingPersonDetailPage extends StatelessWidget {
   final MissingPerson person;

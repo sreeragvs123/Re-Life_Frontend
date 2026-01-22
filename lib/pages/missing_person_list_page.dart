@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'models/missing_person.dart';
+import '../models/missing_person.dart';
 import 'report_missing_person_page.dart';
 import 'missing_person_detail_page.dart';
 

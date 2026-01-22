@@ -2,22 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hive/hive.dart';
 
-import 'package:Relife/user_blood_page.dart';
-import 'package:Relife/user_donation_page.dart';
+import 'user_blood_page.dart';
+import 'package:Relife/pages/user_donation_page.dart';
 
-import 'widgets/function_card.dart';
+import '../widgets/function_card.dart';
 import 'shelter_list_page.dart';
 import 'product_list_page.dart';
 import 'missing_person_list_page.dart';
-import 'data/missing_person_data.dart';
-import 'data/donation_data.dart';
+import '../data/missing_person_data.dart';
+import '../data/donation_data.dart';
 import 'video_gallery_page.dart';
 import 'report_issue_page.dart';
 import 'volunteer_registration_page.dart';
 import 'login_page.dart';
 import 'admin_home.dart';
 import 'volunteer_home.dart';
-import 'models/volunteer.dart';
+import '../models/volunteer.dart';
 import 'donation_page.dart';
 
 class UserHome extends StatefulWidget {
@@ -27,8 +27,7 @@ class UserHome extends StatefulWidget {
   State<UserHome> createState() => _UserHomeState();
 }
 
-class _UserHomeState extends State<UserHome>
-    with SingleTickerProviderStateMixin {
+class _UserHomeState extends State<UserHome> with SingleTickerProviderStateMixin {
   bool hasNewIssue = false;
   late AnimationController _controller;
   String? role;
@@ -61,11 +60,6 @@ class _UserHomeState extends State<UserHome>
     );
   }
 
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
 
   // Animated gradient background
   Widget _buildAnimatedBackground() {

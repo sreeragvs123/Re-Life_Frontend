@@ -7,9 +7,9 @@ import 'package:video_player/video_player.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:video_thumbnail/video_thumbnail.dart';
 import 'package:universal_html/html.dart' as html;
-import '../data/video_data.dart';
-import '../models/video_model.dart';
-import '../widgets/video_card.dart';
+import '../../data/video_data.dart';
+import '../../models/video_model.dart';
+import '../../widgets/video_card.dart';
 
 class VolunteerVideoPage extends StatefulWidget {
   final String volunteerName;

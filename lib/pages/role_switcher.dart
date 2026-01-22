@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'user_home.dart';
 import 'volunteer_home.dart';
 import 'admin_home.dart';
-import 'models/volunteer.dart';
+import '../models/volunteer.dart';
 
 class RoleSwitcher extends StatefulWidget {
   const RoleSwitcher({super.key});

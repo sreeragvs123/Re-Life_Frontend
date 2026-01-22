@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'data/volunteer_data.dart';
+import '../data/volunteer_data.dart';
 
 class AdminAssignTaskPage extends StatefulWidget {
   final String place;

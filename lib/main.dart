@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'user_home.dart';
-import 'admin_home.dart';
-import 'volunteer_home.dart';
+import 'pages/user_home.dart';
+import 'pages/admin_home.dart';
+import 'pages/volunteer_home.dart';
 import 'models/volunteer.dart';
 
 
@@ -12,11 +12,11 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Hive.initFlutter();
 
-  // Open required boxes
-  await Hive.openBox('authBox');       // session storage
-  await Hive.openBox('volunteersBox'); // volunteers database
+
+  await Hive.openBox('authBox');
+  await Hive.openBox('volunteersBox');
   await Hive.openBox('bloodBox');
-      // blood donation db (if needed)
+
 
   runApp(const MyApp());
 }
@@ -42,7 +42,7 @@ class MyApp extends StatelessWidget {
 
 
 class SplashScreen extends StatefulWidget {
-  const SplashScreen({super.key}); // SpalshScree :  first screen that shows up when you open an app. usually displays the app logo, name, or animation.
+  const SplashScreen({super.key});
   @override
   State<SplashScreen> createState() => _SplashScreenState();
 
@@ -60,7 +60,6 @@ class _SplashScreenState extends State<SplashScreen> {
     Future.delayed(const Duration(seconds: 3), () {// Delay for 3 seconds before moving ahead
       _navigateNext();
     });
-
   }
 
   void _navigateNext() {
@@ -70,8 +69,7 @@ class _SplashScreenState extends State<SplashScreen> {
     String role = authBox.get('role', defaultValue: "USER"); // if there is no value to the key "role" set default
 
 
-    Widget nextPage;   //A Widget Variable Creation that help tp hold each page that we need to navigate if the if-else conditon is true
-
+    Widget nextPage;
     if (isLoggedIn && role == "ADMIN") {
       nextPage = const AdminHome();
     } 
@@ -98,11 +96,11 @@ class _SplashScreenState extends State<SplashScreen> {
 
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (_) => nextPage), //returns the widget we want to show next. which is nextPage , and it's type is already decided in the if-else statements
+      MaterialPageRoute(builder: (_) => nextPage),
     );
+
   }
-  //Navigator.pushReplacement()→ it replaces the current screen (in your case, SplashScreen) with a new one (nextPage).
-  //Navigator.push(), it adds a new screen on top of the current one.
+
 
 
 
@@ -110,6 +108,7 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -140,6 +139,8 @@ class _SplashScreenState extends State<SplashScreen> {
             ],
           ),
         ),
+
+
       ),
     );
   }

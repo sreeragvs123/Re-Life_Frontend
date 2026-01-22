@@ -6,8 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart' as gmaps;
 import 'package:latlong2/latlong.dart' as ll;
 
-import '../models/evacuation_route.dart';
-import '../data/evacuation_routes_data.dart';
+import '../../models/evacuation_route.dart';
+import '../../data/evacuation_routes_data.dart';
 import 'map_picker_page.dart';
 
 class EvacuationMapPage extends StatefulWidget {

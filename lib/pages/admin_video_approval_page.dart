@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'data/video_data.dart';
-import 'models/video_model.dart';
-import 'widgets/video_card.dart';
+import '../data/video_data.dart';
+import '../models/video_model.dart';
+import '../widgets/video_card.dart';
 import 'volunteer_video_page.dart'; // VideoPlayerPage
 
 class AdminVideoApprovalPage extends StatefulWidget {

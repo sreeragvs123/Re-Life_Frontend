@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../utils/validators.dart';
-import 'services/payment_service.dart';
+import '../../utils/validators.dart';
+import '../services/payment_service.dart';
 
 /// A simple donation page that lets the user enter any desired amount and
 /// proceed to Razorpay checkout using `PaymentService`.
@@ -135,7 +135,7 @@ class _DonationPageState extends State<DonationPage> {
                   labelText: 'Email (optional)',
                   border: OutlineInputBorder(),
                 ),
-                                  // Email
+                // Email
                 validator: (v) {
                   if (v == null || v.trim().isEmpty) return null;
                   final email = v.trim();

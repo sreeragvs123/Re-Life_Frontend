@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:Relife/data/volunteer_data.dart';
-import 'data/report_data.dart'; // Make sure groupTasks and reports are defined here
-import 'models/report_model.dart';
+import '../data/report_data.dart'; // Make sure groupTasks and reports are defined here
+import '../models/report_model.dart';
 
 class VolunteerReportPage extends StatefulWidget {
   final String volunteerName; // To track volunteer
