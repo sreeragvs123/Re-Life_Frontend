@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../models/missing_person.dart';
 import '../../utils/validators.dart';
+// ⭐ ADDED: Import API service
+import '../api/missing_person_api.dart';
 
 class ReportMissingPersonPage extends StatefulWidget {
   const ReportMissingPersonPage({super.key});
@@ -21,20 +23,58 @@ class _ReportMissingPersonPageState extends State<ReportMissingPersonPage> {
 
   // Controls when to show validation errors
   AutovalidateMode _autoValidate = AutovalidateMode.disabled;
+  
+  // ⭐ ADDED: Loading state and API instance
+  bool _isSubmitting = false;
+  final MissingPersonApi _api = MissingPersonApi();
 
-  void _submit() {
+  // ⭐ EDITED: Submit now saves to backend
+  Future<void> _submit() async {
     if (_formKey.currentState!.validate()) {
-      // Form is valid, create MissingPerson object
-      final newPerson = MissingPerson(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
-        name: _nameController.text,
-        age: int.tryParse(_ageController.text) ?? 0,
-        lastSeen: _lastSeenController.text,
-        description: _descriptionController.text,
-        familyName: _familyNameController.text,
-        familyContact: _familyContactController.text,
-      );
-      Navigator.pop(context, newPerson);
+      setState(() => _isSubmitting = true);
+      
+      try {
+        // Create MissingPerson object
+        final newPerson = MissingPerson(
+          id: DateTime.now().millisecondsSinceEpoch.toString(),
+          name: _nameController.text,
+          age: int.tryParse(_ageController.text) ?? 0,
+          lastSeen: _lastSeenController.text,
+          description: _descriptionController.text,
+          familyName: _familyNameController.text,
+          familyContact: _familyContactController.text,
+        );
+        
+        // ⭐ ADDED: Save to backend
+        await _api.create(newPerson);
+        
+        setState(() => _isSubmitting = false);
+        
+        if (mounted) {
+          // Show success message
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Missing person reported successfully'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          
+          // Return true to indicate success
+          Navigator.pop(context, true);
+        }
+      } catch (e) {
+        setState(() => _isSubmitting = false);
+        
+        if (mounted) {
+          // Show error message
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error reporting missing person: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
     } else {
       // Show errors after first submit
       setState(() {
@@ -178,11 +218,21 @@ class _ReportMissingPersonPageState extends State<ReportMissingPersonPage> {
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton.icon(
-                          onPressed: _submit,
-                          icon: const Icon(Icons.check_circle_outline),
-                          label: const Text(
-                            "Submit Report",
-                            style: TextStyle(fontSize: 16),
+                          // ⭐ EDITED: Disable button while submitting
+                          onPressed: _isSubmitting ? null : _submit,
+                          icon: _isSubmitting
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Icon(Icons.check_circle_outline),
+                          label: Text(
+                            _isSubmitting ? "Submitting..." : "Submit Report",
+                            style: const TextStyle(fontSize: 16),
                           ),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.redAccent,
@@ -203,5 +253,16 @@ class _ReportMissingPersonPageState extends State<ReportMissingPersonPage> {
         ),
       ),
     );
+  }
+  
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _ageController.dispose();
+    _lastSeenController.dispose();
+    _descriptionController.dispose();
+    _familyNameController.dispose();
+    _familyContactController.dispose();
+    super.dispose();
   }
 }

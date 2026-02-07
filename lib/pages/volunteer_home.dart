@@ -10,7 +10,7 @@ import '../widgets/function_card.dart';
 
 import 'product_list_page.dart';
 import 'missing_person_list_page.dart';
-import '../data/missing_person_data.dart';
+// ⭐ REMOVED: import '../data/missing_person_data.dart';
 import 'volunteer_donation_page.dart';
 import '../data/donation_data.dart';
 import 'video_gallery_page.dart';
@@ -209,6 +209,7 @@ body: Stack(
                     ),
                   ),
                 ),
+                // ⭐ EDITED: Removed persons parameter
                 _buildAnimatedCard(
                   1,
                   HoverCard(
@@ -219,8 +220,7 @@ body: Stack(
                       onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => MissingPersonListPage(
-                              persons: sampleMissingPersons),
+                          builder: (_) => const MissingPersonListPage(), // ⭐ REMOVED: persons parameter
                         ),
                       ),
                     ),
@@ -330,7 +330,7 @@ body: Stack(
         context,
         MaterialPageRoute(
           builder: (_) => VolunteerReportPage(
-            volunteerName: "Your Volunteer Name", // pass logged-in volunteer name
+            volunteerName: volunteerName, // ⭐ FIXED: Use actual volunteer name
           ),
         ),
       ),
@@ -453,6 +453,7 @@ body: Stack(
                         );
                       },
                     ),
+                    // ⭐ EDITED: Removed persons parameter from dialog
                     _buildFunctionItem(
                       context,
                       "Missing Persons",
@@ -463,8 +464,7 @@ body: Stack(
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => MissingPersonListPage(
-                                persons: sampleMissingPersons),
+                            builder: (_) => const MissingPersonListPage(), // ⭐ REMOVED: persons parameter
                           ),
                         );
                       },

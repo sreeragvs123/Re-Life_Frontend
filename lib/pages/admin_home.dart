@@ -10,7 +10,7 @@ import 'volunteer_report_page.dart';
 import 'add_shelter_route_page.dart';
 import 'shelter_list_page.dart';
 import 'product_list_page.dart';
-import '../data/missing_person_data.dart';
+// ⭐ REMOVED: import '../data/missing_person_data.dart'; (no longer needed)
 import 'admin_missing_person_page.dart';
 import 'admin_donation_page.dart';
 import '../data/donation_data.dart';
@@ -204,6 +204,7 @@ class _AdminHomeState extends State<AdminHome>
                   )),
                 ),
                 // Missing Persons
+                // ⭐ EDITED: No longer passing persons parameter
                 _buildAnimatedCard(
                   4,
                   _buildHoverCard(FunctionCard(
@@ -215,9 +216,7 @@ class _AdminHomeState extends State<AdminHome>
                     onTap: () => Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (_) => AdminMissingPersonPage(
-                                persons: sampleMissingPersons,
-                              )),
+                          builder: (_) => const AdminMissingPersonPage()), // ⭐ REMOVED: persons parameter
                     ),
                   )),
                 ),
@@ -412,13 +411,12 @@ class _AdminHomeState extends State<AdminHome>
                     MaterialPageRoute(
                         builder: (_) => const ProductListPage(canAdd: true)));
               }),
+              // ⭐ EDITED: No longer passing persons parameter
               _buildFunctionItem(context, "Missing Persons", Icons.person, () {
                 Navigator.push(
                     context,
                     MaterialPageRoute(
-                        builder: (_) => AdminMissingPersonPage(
-                              persons: sampleMissingPersons,
-                            )));
+                        builder: (_) => const AdminMissingPersonPage())); // ⭐ REMOVED: persons parameter
               }),
               _buildFunctionItem(
                   context, "Donated Items ($totalDonations)", Icons.list, () {

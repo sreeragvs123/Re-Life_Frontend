@@ -9,7 +9,7 @@ import '../widgets/function_card.dart';
 import 'shelter_list_page.dart';
 import 'product_list_page.dart';
 import 'missing_person_list_page.dart';
-import '../data/missing_person_data.dart';
+// ⭐ REMOVED: import '../data/missing_person_data.dart';
 import '../data/donation_data.dart';
 import 'video_gallery_page.dart';
 import 'report_issue_page.dart';
@@ -91,7 +91,7 @@ class _UserHomeState extends State<UserHome> with SingleTickerProviderStateMixin
         elevation: 1,
         shadowColor: Colors.deepPurpleAccent,
         title: Text(
-          "Disaster Relief Hub",
+          "RELIFE",
           style: GoogleFonts.bebasNeue(
             fontSize: 28,
             letterSpacing: 1.2,
@@ -221,7 +221,7 @@ class _UserHomeState extends State<UserHome> with SingleTickerProviderStateMixin
         icon: Icons.home,
         color: Colors.white,
         textSize: 18,
-        fontWeight: FontWeight.bold, // ✅ bold "Shelters"
+        fontWeight: FontWeight.bold,
         onTap: () => Navigator.push(
           context,
           _createRoute(const ShelterListPage()),
@@ -249,13 +249,14 @@ class _UserHomeState extends State<UserHome> with SingleTickerProviderStateMixin
         icon: Icons.payment,
         color: Colors.white,
         textSize: 18,
-        fontWeight: FontWeight.bold, // ✅ bold "Payment"
+        fontWeight: FontWeight.bold,
         onTap: () => Navigator.push(
           context,
           _createRoute(const DonationPage()),
         ),
       ),
     ),
+    // ⭐ EDITED: Removed persons parameter
     _buildAnimatedCard(
       3,
       FunctionCard(
@@ -267,7 +268,7 @@ class _UserHomeState extends State<UserHome> with SingleTickerProviderStateMixin
         onTap: () => Navigator.push(
           context,
           _createRoute(
-            MissingPersonListPage(persons: sampleMissingPersons),
+            const MissingPersonListPage(), // ⭐ REMOVED: persons parameter
           ),
         ),
       ),
@@ -457,12 +458,12 @@ class _UserHomeState extends State<UserHome> with SingleTickerProviderStateMixin
                   Navigator.push(context,
                       _createRoute(ProductListPage(canAdd: false)));
                 }),
+                // ⭐ EDITED: Removed persons parameter from dialog navigation
                 _buildFunctionItem(context, "Missing Persons",
                     Icons.person_search, () {
                   Navigator.push(
                       context,
-                      _createRoute(MissingPersonListPage(
-                          persons: sampleMissingPersons)));
+                      _createRoute(const MissingPersonListPage())); // ⭐ REMOVED: persons parameter
                 }),
                 _buildFunctionItem(context, "Report an Issue",
                     Icons.report_problem, () {
@@ -503,5 +504,11 @@ class _UserHomeState extends State<UserHome> with SingleTickerProviderStateMixin
         onTap();
       },
     );
+  }
+  
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 }
