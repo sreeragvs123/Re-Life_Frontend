@@ -9,8 +9,8 @@ import '../widgets/function_card.dart';
 import 'shelter_list_page.dart';
 import 'product_list_page.dart';
 import 'missing_person_list_page.dart';
-// ⭐ REMOVED: import '../data/missing_person_data.dart';
-import '../data/donation_data.dart';
+// ⭐ REMOVED: import '../data/donation_data.dart'; // DELETE THIS LINE - we use API now!
+import '../api/donation_api.dart'; // ⭐ ADD THIS - use API instead
 import 'video_gallery_page.dart';
 import 'report_issue_page.dart';
 import 'volunteer_registration_page.dart';
@@ -31,6 +31,7 @@ class _UserHomeState extends State<UserHome> with SingleTickerProviderStateMixin
   bool hasNewIssue = false;
   late AnimationController _controller;
   String? role;
+  int totalDonations = 0; // ⭐ CHANGED: Now loaded from API
 
   @override
   void initState() {
@@ -39,6 +40,7 @@ class _UserHomeState extends State<UserHome> with SingleTickerProviderStateMixin
         AnimationController(vsync: this, duration: const Duration(seconds: 1))
           ..forward();
     _loadRole();
+    _loadDonationCount(); // ⭐ ADD THIS: Load donation count from API
   }
 
   void _loadRole() {
@@ -46,6 +48,21 @@ class _UserHomeState extends State<UserHome> with SingleTickerProviderStateMixin
     setState(() {
       role = box.get('role');
     });
+  }
+
+  // ⭐ NEW METHOD: Load total donation count from backend
+  Future<void> _loadDonationCount() async {
+    try {
+      final donations = await DonationApi.getApprovedDonations();
+      setState(() {
+        totalDonations = donations.fold(0, (sum, d) => sum + d.quantity);
+      });
+    } catch (e) {
+      // Silently fail - just show 0 if API fails
+      setState(() {
+        totalDonations = 0;
+      });
+    }
   }
 
   void _signOut() {
@@ -83,7 +100,8 @@ class _UserHomeState extends State<UserHome> with SingleTickerProviderStateMixin
 
   @override
   Widget build(BuildContext context) {
-    int totalDonations = donationsList.fold(0, (sum, d) => sum + d.quantity);
+    // ⭐ REMOVED: int totalDonations = donationsList.fold(0, (sum, d) => sum + d.quantity);
+    // Now using the totalDonations field loaded from API in initState
 
     return Scaffold(
       appBar: AppBar(
@@ -375,6 +393,8 @@ class _UserHomeState extends State<UserHome> with SingleTickerProviderStateMixin
               ),
             ),
           );
+          // ⭐ CHANGED: Reload donation count after returning from donation page
+          await _loadDonationCount();
           setState(() {});
         },
       ),

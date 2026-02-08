@@ -1,9 +1,18 @@
 import 'package:flutter/material.dart';
-import '../../data/donation_data.dart';
 import '../../models/donation.dart';
+import '../../api/donation_api.dart';
 
 class UserDonationPage extends StatefulWidget {
-  const UserDonationPage({super.key, required String userAddress, required String userContact, required String userName});
+  final String userName;
+  final String userContact;
+  final String userAddress;
+
+  const UserDonationPage({
+    super.key,
+    required this.userName,
+    required this.userContact,
+    required this.userAddress,
+  });
 
   @override
   State<UserDonationPage> createState() => _UserDonationPageState();
@@ -16,7 +25,40 @@ class _UserDonationPageState extends State<UserDonationPage> {
   final _itemController = TextEditingController();
   final _quantityController = TextEditingController();
 
-  void _submitDonation() {
+  List<Donation> _myDonations = [];
+  bool _isLoading = false;
+  bool _isSubmitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Pre-fill user information
+    _nameController.text = widget.userName;
+    _contactController.text = widget.userContact;
+    _addressController.text = widget.userAddress;
+    
+    _loadMyDonations();
+  }
+
+  Future<void> _loadMyDonations() async {
+    setState(() => _isLoading = true);
+    try {
+      final donations = await DonationApi.getDonationsByDonor(widget.userName);
+      setState(() {
+        _myDonations = donations.where((d) => d.isApproved).toList();
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() => _isLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error loading donations: $e")),
+        );
+      }
+    }
+  }
+
+  Future<void> _submitDonation() async {
     if (_nameController.text.isEmpty ||
         _contactController.text.isEmpty ||
         _addressController.text.isEmpty ||
@@ -29,26 +71,45 @@ class _UserDonationPageState extends State<UserDonationPage> {
     }
 
     final donation = Donation(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
       donorName: _nameController.text,
       contact: _contactController.text,
       address: _addressController.text,
       item: _itemController.text,
-      quantity: int.tryParse(_quantityController.text) ?? 0, 
+      quantity: int.tryParse(_quantityController.text) ?? 0,
       date: DateTime.now(),
     );
 
-    setState(() {
-      donationsList.add(donation);
-    });
+    setState(() => _isSubmitting = true);
 
-    _itemController.clear();
-    _quantityController.clear();
+    try {
+      await DonationApi.createDonation(donation);
+      
+      _itemController.clear();
+      _quantityController.clear();
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-          content: Text("Donation submitted! Waiting for admin approval.")),
-    );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Donation submitted! Waiting for admin approval."),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+
+      // Reload donations
+      await _loadMyDonations();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Failed to submit donation: $e"),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      setState(() => _isSubmitting = false);
+    }
   }
 
   Color _getStatusColor(String status) {
@@ -68,9 +129,6 @@ class _UserDonationPageState extends State<UserDonationPage> {
 
   @override
   Widget build(BuildContext context) {
-    final approvedDonations =
-        donationsList.where((d) => d.isApproved).toList();
-
     return Scaffold(
       appBar: AppBar(title: const Text("Donate & My Donations")),
       body: Padding(
@@ -123,54 +181,83 @@ class _UserDonationPageState extends State<UserDonationPage> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: _submitDonation,
-                  child: const Text("Donate"),
+                  onPressed: _isSubmitting ? null : _submitDonation,
+                  child: _isSubmitting
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text("Donate"),
                 ),
               ),
               const SizedBox(height: 30),
-              const Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  "Approved Donations",
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    "Approved Donations",
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.refresh),
+                    onPressed: _loadMyDonations,
+                  ),
+                ],
               ),
               const SizedBox(height: 10),
-              approvedDonations.isEmpty
-                  ? const Text("No approved donations yet.")
-                  : ListView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: approvedDonations.length,
-                      itemBuilder: (context, index) {
-                        final donation = approvedDonations[index];
-                        return Card(
-                          margin: const EdgeInsets.symmetric(vertical: 6),
-                          child: ListTile(
-                            title: Text(donation.item),
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text("Quantity: ${donation.quantity}"),
-                                Text(
-                                    "Date: ${donation.date.toLocal().toString().split('.')[0]}"),
-                                Text(
-                                  "Status: ${donation.status}",
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: _getStatusColor(donation.status),
-                                  ),
-                                ),
-                              ],
-                            ),
+              _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _myDonations.isEmpty
+                      ? const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(20),
+                            child: Text("No approved donations yet."),
                           ),
-                        );
-                      },
-                    ),
+                        )
+                      : ListView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: _myDonations.length,
+                          itemBuilder: (context, index) {
+                            final donation = _myDonations[index];
+                            return Card(
+                              margin: const EdgeInsets.symmetric(vertical: 6),
+                              child: ListTile(
+                                title: Text(donation.item),
+                                subtitle: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text("Quantity: ${donation.quantity}"),
+                                    Text(
+                                        "Date: ${donation.date.toLocal().toString().split('.')[0]}"),
+                                    Text(
+                                      "Status: ${donation.status}",
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: _getStatusColor(donation.status),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
             ],
           ),
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _contactController.dispose();
+    _addressController.dispose();
+    _itemController.dispose();
+    _quantityController.dispose();
+    super.dispose();
   }
 }
