@@ -7,17 +7,15 @@ import 'admin_video_approval_page.dart';
 import '../data/report_data.dart';
 import 'volunteer_report_page.dart';
 
-import 'add_shelter_route_page.dart';
 import 'shelter_list_page.dart';
 import 'product_list_page.dart';
-// ⭐ REMOVED: import '../data/missing_person_data.dart'; (no longer needed)
 import 'admin_missing_person_page.dart';
 import 'admin_donation_page.dart';
-import '../data/donation_data.dart';
+import '../api/donation_api.dart';           // ⭐ Use API for donation count
 import 'video_gallery_page.dart';
 import 'issue_list_page.dart';
 import 'admin_volunteer_list_page.dart';
-import 'evacuation_map_page.dart';
+import 'evacuation_map_page.dart';           // ⭐ Map page
 import 'user_home.dart';
 import 'volunteer_home.dart';
 import '../models/volunteer.dart';
@@ -34,6 +32,7 @@ class _AdminHomeState extends State<AdminHome>
     with SingleTickerProviderStateMixin {
   bool hasNewIssue = true;
   late AnimationController _controller;
+  int totalDonations = 0;               // ⭐ Now loaded from API
 
   @override
   void initState() {
@@ -41,6 +40,7 @@ class _AdminHomeState extends State<AdminHome>
     _controller =
         AnimationController(vsync: this, duration: const Duration(seconds: 1))
           ..forward();
+    _loadDonationCount();               // ⭐ Load from backend
   }
 
   @override
@@ -49,25 +49,33 @@ class _AdminHomeState extends State<AdminHome>
     super.dispose();
   }
 
+  // ⭐ NEW: Load donation count from API (mirrors UserHome pattern)
+  Future<void> _loadDonationCount() async {
+    try {
+      final donations = await DonationApi.getApprovedDonations();
+      if (mounted) {
+        setState(() {
+          totalDonations = donations.fold(0, (sum, d) => sum + d.quantity);
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => totalDonations = 0);
+    }
+  }
 
   Widget _buildAnimatedBackground() {
-  return AnimatedContainer(
-    duration: const Duration(seconds: 5),
-    onEnd: () {
-      setState(() {}); // triggers rebuild for gradient loop
-    },
-    decoration: BoxDecoration(
-      gradient: LinearGradient(
-        colors: [
-          Colors.white,
-          Colors.blueAccent,
-        ]..shuffle(), // shuffle for subtle animation
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
+    return AnimatedContainer(
+      duration: const Duration(seconds: 5),
+      onEnd: () => setState(() {}),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Colors.white, Colors.blueAccent]..shuffle(),
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   void _signOut() {
     var box = Hive.box('authBox');
@@ -82,8 +90,6 @@ class _AdminHomeState extends State<AdminHome>
 
   @override
   Widget build(BuildContext context) {
-    int totalDonations = donationsList.fold(0, (sum, d) => sum + d.quantity);
-
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.black.withOpacity(0.7),
@@ -91,7 +97,7 @@ class _AdminHomeState extends State<AdminHome>
         elevation: 8,
         title: Text(
           "Admin Dashboard",
-            style: GoogleFonts.bebasNeue(
+          style: GoogleFonts.bebasNeue(
             fontSize: 28,
             letterSpacing: 1.2,
             color: Colors.white,
@@ -100,12 +106,11 @@ class _AdminHomeState extends State<AdminHome>
         actions: [
           IconButton(
             icon: const Icon(Icons.menu, color: Colors.white),
-            onPressed: () => _showFunctionsDialog(context, totalDonations),
+            onPressed: () => _showFunctionsDialog(context),
           ),
           TextButton(
             onPressed: _signOut,
-            child:
-                const Text("Sign Out", style: TextStyle(color: Colors.white)),
+            child: const Text("Sign Out", style: TextStyle(color: Colors.white)),
           ),
           PopupMenuButton<String>(
             icon: const Icon(Icons.switch_account, color: Colors.white),
@@ -117,8 +122,8 @@ class _AdminHomeState extends State<AdminHome>
                 items.add(const PopupMenuItem(
                     value: "admin", child: Text("Admin Home")));
               }
-              items.add(
-                  const PopupMenuItem(value: "user", child: Text("User Home")));
+              items.add(const PopupMenuItem(
+                  value: "user", child: Text("User Home")));
               items.add(const PopupMenuItem(
                   value: "volunteer", child: Text("Volunteer Home")));
               return items;
@@ -126,7 +131,6 @@ class _AdminHomeState extends State<AdminHome>
           )
         ],
       ),
-
       body: Stack(
         children: [
           _buildAnimatedBackground(),
@@ -138,20 +142,21 @@ class _AdminHomeState extends State<AdminHome>
               mainAxisSpacing: 16,
               childAspectRatio: 0.8,
               children: [
-                // Add Shelter + Route
+                // ⭐ UPDATED: "Evacuation Map" replaces the old static AddShelterRoutePage card
+                //   Admin opens map with isAdmin:true — can add/delete shelters from within
                 _buildAnimatedCard(
                   0,
                   _buildHoverCard(FunctionCard(
-                    title: "Add Shelter & Route",
-                  
-                    icon: Icons.add_home,
+                    title: "Evacuation Map",
+                    icon: Icons.map,
                     color: Colors.white.withOpacity(0.4),
                     textSize: 18,
-        fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.bold,
                     onTap: () => Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (_) => const AddShelterRoutePage()),
+                        builder: (_) => const EvacuationMapPage(isAdmin: true),
+                      ),
                     ),
                   )),
                 ),
@@ -163,7 +168,7 @@ class _AdminHomeState extends State<AdminHome>
                     icon: Icons.home_work,
                     color: Colors.white.withOpacity(0.4),
                     textSize: 18,
-        fontWeight: FontWeight.bold, 
+                    fontWeight: FontWeight.bold,
                     onTap: () => Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -177,8 +182,8 @@ class _AdminHomeState extends State<AdminHome>
                   _buildHoverCard(FunctionCard(
                     title: "Volunteers & Tasks",
                     icon: Icons.group,
-                                        textSize: 18,
-        fontWeight: FontWeight.bold, 
+                    textSize: 18,
+                    fontWeight: FontWeight.bold,
                     color: Colors.white.withOpacity(0.4),
                     onTap: () => Navigator.push(
                       context,
@@ -194,8 +199,8 @@ class _AdminHomeState extends State<AdminHome>
                     title: "Required Products",
                     icon: Icons.shopping_cart,
                     color: Colors.white.withOpacity(0.4),
-                                        textSize: 18,
-        fontWeight: FontWeight.bold, 
+                    textSize: 18,
+                    fontWeight: FontWeight.bold,
                     onTap: () => Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -204,23 +209,21 @@ class _AdminHomeState extends State<AdminHome>
                   )),
                 ),
                 // Missing Persons
-                // ⭐ EDITED: No longer passing persons parameter
                 _buildAnimatedCard(
                   4,
                   _buildHoverCard(FunctionCard(
                     title: "Missing Persons",
                     icon: Icons.person,
                     color: Colors.white.withOpacity(0.4),
-                                        textSize: 18,
-        fontWeight: FontWeight.bold, 
+                    textSize: 18,
+                    fontWeight: FontWeight.bold,
                     onTap: () => Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (_) => const AdminMissingPersonPage()), // ⭐ REMOVED: persons parameter
+                          builder: (_) => const AdminMissingPersonPage()),
                     ),
                   )),
                 ),
-
                 // Reported Issues
                 _buildAnimatedCard(
                   5,
@@ -228,8 +231,8 @@ class _AdminHomeState extends State<AdminHome>
                     title: "Reported Issues",
                     icon: Icons.report_problem,
                     color: Colors.white.withOpacity(0.4),
-                                        textSize: 18,
-        fontWeight: FontWeight.bold, 
+                    textSize: 18,
+                    fontWeight: FontWeight.bold,
                     badge: hasNewIssue
                         ? Container(
                             width: 14,
@@ -257,8 +260,8 @@ class _AdminHomeState extends State<AdminHome>
                     title: "Videos",
                     icon: Icons.video_library,
                     color: Colors.white.withOpacity(0.4),
-                                        textSize: 18,
-        fontWeight: FontWeight.bold, 
+                    textSize: 18,
+                    fontWeight: FontWeight.bold,
                     onTap: () => Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -266,62 +269,56 @@ class _AdminHomeState extends State<AdminHome>
                     ),
                   )),
                 ),
-
+                // Donations — ⭐ count now from API
                 _buildAnimatedCard(
                   7,
                   _buildHoverCard(FunctionCard(
                     title: "Donations ($totalDonations)",
                     icon: Icons.volunteer_activism,
                     color: Colors.white.withOpacity(0.35),
-                                        textSize: 18,
-        fontWeight: FontWeight.bold, 
+                    textSize: 18,
+                    fontWeight: FontWeight.bold,
                     onTap: () async {
-                      // Open Admin donation page
                       await Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (_) => const AdminDonationPage(),
                         ),
                       );
-                      setState(() {}); // Refresh donations badge
+                      _loadDonationCount(); // Refresh count on return
                     },
                   )),
                 ),
+                // Volunteer Reports
                 _buildAnimatedCard(
-  8,
-  _buildHoverCard(
-    FunctionCard(
-      title: "Volunteer Reports (${reports.length})", // optional badge
-      icon: Icons.report,
-      color: Colors.white.withOpacity(0.35),
-                          textSize: 18,
-        fontWeight: FontWeight.bold, 
-      onTap: () async {
-        // Open Volunteer Report page
-        await Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => AdminReportPage(
-              volunteerName: AdminVolunteerListPage(), // pass actual volunteer
-            ),
-          ),
-        );
-        setState(() {}); // Refresh if needed
-      },
-    ),
-  ),
-),
-
+                  8,
+                  _buildHoverCard(FunctionCard(
+                    title: "Volunteer Reports (${reports.length})",
+                    icon: Icons.report,
+                    color: Colors.white.withOpacity(0.35),
+                    textSize: 18,
+                    fontWeight: FontWeight.bold,
+                    onTap: () async {
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => AdminReportPage(
+                            volunteerName: AdminVolunteerListPage(),
+                          ),
+                        ),
+                      );
+                      setState(() {});
+                    },
+                  )),
+                ),
               ],
             ),
           ),
         ],
       ),
-      // Floating action button removed
     );
   }
 
-  // Hover animation
   Widget _buildHoverCard(Widget child) {
     return StatefulBuilder(builder: (context, setHover) {
       bool hovering = false;
@@ -353,26 +350,23 @@ class _AdminHomeState extends State<AdminHome>
     });
   }
 
-  // Fade + Slide animation
   Widget _buildAnimatedCard(int index, Widget child) {
     final animation = CurvedAnimation(
       parent: _controller,
       curve: Interval(index * 0.1, 1, curve: Curves.easeOutBack),
     );
-
     return FadeTransition(
       opacity: animation,
       child: SlideTransition(
-        position: Tween<Offset>(
-          begin: const Offset(0, 0.2),
-          end: Offset.zero,
-        ).animate(animation),
+        position:
+            Tween<Offset>(begin: const Offset(0, 0.2), end: Offset.zero)
+                .animate(animation),
         child: child,
       ),
     );
   }
 
-  void _showFunctionsDialog(BuildContext context, int totalDonations) {
+  void _showFunctionsDialog(BuildContext context) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -383,12 +377,13 @@ class _AdminHomeState extends State<AdminHome>
           child: ListView(
             shrinkWrap: true,
             children: [
-              _buildFunctionItem(context, "Add Shelter & Route", Icons.add_home,
-                  () {
+              // ⭐ Updated: now navigates to EvacuationMapPage
+              _buildFunctionItem(context, "Evacuation Map", Icons.map, () {
                 Navigator.push(
                     context,
                     MaterialPageRoute(
-                        builder: (_) => const AddShelterRoutePage()));
+                        builder: (_) =>
+                            const EvacuationMapPage(isAdmin: true)));
               }),
               _buildFunctionItem(context, "Manage Shelters", Icons.home_work,
                   () {
@@ -411,15 +406,14 @@ class _AdminHomeState extends State<AdminHome>
                     MaterialPageRoute(
                         builder: (_) => const ProductListPage(canAdd: true)));
               }),
-              // ⭐ EDITED: No longer passing persons parameter
               _buildFunctionItem(context, "Missing Persons", Icons.person, () {
                 Navigator.push(
                     context,
                     MaterialPageRoute(
-                        builder: (_) => const AdminMissingPersonPage())); // ⭐ REMOVED: persons parameter
+                        builder: (_) => const AdminMissingPersonPage()));
               }),
               _buildFunctionItem(
-                  context, "Donated Items ($totalDonations)", Icons.list, () {
+                  context, "Donations ($totalDonations)", Icons.list, () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const AdminDonationPage()),
@@ -430,7 +424,8 @@ class _AdminHomeState extends State<AdminHome>
                 Navigator.push(
                     context,
                     MaterialPageRoute(
-                        builder: (_) => const IssueListPage(role: "Admin")));
+                        builder: (_) =>
+                            const IssueListPage(role: "Admin")));
               }),
               _buildFunctionItem(context, "Videos", Icons.video_library, () {
                 Navigator.push(
@@ -443,16 +438,15 @@ class _AdminHomeState extends State<AdminHome>
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Close"),
-          ),
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Close")),
         ],
       ),
     );
   }
 
-  Widget _buildFunctionItem(
-      BuildContext context, String title, IconData icon, VoidCallback onTap) {
+  Widget _buildFunctionItem(BuildContext context, String title, IconData icon,
+      VoidCallback onTap) {
     return ListTile(
       leading: Icon(icon, color: Colors.deepPurple),
       title: Text(title),
@@ -475,7 +469,6 @@ class _AdminHomeState extends State<AdminHome>
       );
     } else if (value == "volunteer") {
       Volunteer volunteerToOpen;
-
       if (role == "VOLUNTEER") {
         var volunteersBox = Hive.box('volunteersBox');
         if (email != null && volunteersBox.containsKey(email)) {
@@ -491,34 +484,22 @@ class _AdminHomeState extends State<AdminHome>
               const SnackBar(content: Text("Volunteer data not found!")));
           return;
         }
-      } else if (role == "ADMIN") {
+      } else {
         volunteerToOpen = Volunteer(
           name: "Admin Volunteer",
           place: "Admin Center",
           email: "admin@admin.com",
           password: "admin123",
         );
-      } else {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text("Unauthorized access")));
-        return;
       }
-
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
             builder: (_) => VolunteerHome(volunteer: volunteerToOpen)),
       );
     } else if (value == "admin") {
-      if (role == "ADMIN") {
-        ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Already on Admin Home")));
-      } else {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const AdminHome()),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Already on Admin Home")));
     }
   }
 }

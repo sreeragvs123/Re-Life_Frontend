@@ -7,11 +7,8 @@ import 'volunteer_report_page.dart';
 import 'volunteer_video_page.dart';
 
 import '../widgets/function_card.dart';
-
 import 'product_list_page.dart';
 import 'missing_person_list_page.dart';
-// ⭐ REMOVED: import '../data/missing_person_data.dart';
-import 'volunteer_donation_page.dart';
 import '../data/donation_data.dart';
 import 'video_gallery_page.dart';
 import 'issue_list_page.dart';
@@ -19,6 +16,7 @@ import 'volunteer_group_page.dart';
 import '../models/volunteer.dart';
 import '../pages/user_home.dart';
 import '../pages/admin_home.dart';
+import 'evacuation_map_page.dart';           // ⭐ NEW
 
 // ✅ Hover wrapper (reusable)
 class HoverCard extends StatefulWidget {
@@ -63,7 +61,7 @@ class _HoverCardState extends State<HoverCard> {
 }
 
 class VolunteerHome extends StatefulWidget {
-  final Volunteer? volunteer; // Optional volunteer info
+  final Volunteer? volunteer;
   const VolunteerHome({super.key, this.volunteer});
 
   @override
@@ -89,27 +87,19 @@ class _VolunteerHomeState extends State<VolunteerHome>
     super.dispose();
   }
 
-  // 🔹 Animated gradient background
-Widget _buildAnimatedBackground() {
-  return AnimatedContainer(
-    duration: const Duration(seconds: 5),
-    onEnd: () {
-      setState(() {}); // triggers rebuild for gradient loop
-    },
-    decoration: BoxDecoration(
-      gradient: LinearGradient(
-        colors: [
-          Colors.white,
-          Colors.blueAccent,
-        ]..shuffle(), // shuffle for subtle animation
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
+  Widget _buildAnimatedBackground() {
+    return AnimatedContainer(
+      duration: const Duration(seconds: 5),
+      onEnd: () => setState(() {}),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Colors.white, Colors.blueAccent]..shuffle(),
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
       ),
-    ),
-  );
-}
-
-
+    );
+  }
 
   void _signOut() {
     var box = Hive.box('authBox');
@@ -128,7 +118,8 @@ Widget _buildAnimatedBackground() {
 
   @override
   Widget build(BuildContext context) {
-    int totalDonations = donationsList.fold(0, (sum, d) => sum + d.quantity);
+    int totalDonations =
+        donationsList.fold(0, (sum, d) => sum + d.quantity);
     final volunteerName = widget.volunteer?.name ?? "Guest Volunteer";
     final volunteerPlace = widget.volunteer?.place ?? "Unknown Place";
 
@@ -137,62 +128,44 @@ Widget _buildAnimatedBackground() {
         backgroundColor: Colors.black.withOpacity(0.7),
         shadowColor: Colors.deepPurpleAccent,
         elevation: 8,
-        title: Text("Volunteer Dashboard ($volunteerName)",
-                    style: GoogleFonts.bebasNeue(
-                    fontSize: 28,
-                    letterSpacing: 1.2,
-                    color: Colors.white,
-                    
-          ),
+        title: Text(
+          "Volunteer Dashboard ($volunteerName)",
+          style: GoogleFonts.bebasNeue(
+              fontSize: 28, letterSpacing: 1.2, color: Colors.white),
         ),
         actions: [
-          // ✅ Role dropdown menu
-          Builder(
-            builder: (context) {
-              var box = Hive.box('authBox');
-              String? role = box.get('role');
-
-              if (role == "ADMIN") {
-                // Admin can go to AdminHome, UserHome, and VolunteerHome (as special volunteer)
-                return _roleSwitcher(context, ["admin", "user", "volunteer"]);
-              } else if (role == "VOLUNTEER") {
-                // Volunteer can go to UserHome or VolunteerHome (their real data)
-                return _roleSwitcher(context, ["user", "volunteer"]);
-              }
-              return const SizedBox(); // Guest / no role: nothing
-            },
-          ),
-
-          // ✅ Sign Out
+          Builder(builder: (context) {
+            var box = Hive.box('authBox');
+            String? role = box.get('role');
+            if (role == "ADMIN") {
+              return _roleSwitcher(context, ["admin", "user", "volunteer"]);
+            } else if (role == "VOLUNTEER") {
+              return _roleSwitcher(context, ["user", "volunteer"]);
+            }
+            return const SizedBox();
+          }),
           TextButton(
             onPressed: _signOut,
-            child:
-                const Text("Sign Out", style: TextStyle(color: Colors.white)),
+            child: const Text("Sign Out",
+                style: TextStyle(color: Colors.white)),
           ),
-
-          // Menu button
           IconButton(
             icon: const Icon(Icons.menu, color: Colors.white),
-            onPressed: () => _showFunctionsDialog(context),
+            onPressed: () =>
+                _showFunctionsDialog(context, totalDonations, volunteerPlace),
           ),
         ],
       ),
-body: Stack(
-  children: [
-    // 🔹 Animated gradient
-    Positioned.fill(child: _buildAnimatedBackground()),
-
-    // 🔹 Optional dark overlay for readability
-
-
-    // 🔹 Dashboard Grid
-    Padding(
-      padding: const EdgeInsets.all(16),
-      child: GridView.count(
-        crossAxisCount: 2,
-        crossAxisSpacing: 16,
-        mainAxisSpacing: 16,
-        childAspectRatio: 0.8,
+      body: Stack(
+        children: [
+          Positioned.fill(child: _buildAnimatedBackground()),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: GridView.count(
+              crossAxisCount: 2,
+              crossAxisSpacing: 16,
+              mainAxisSpacing: 16,
+              childAspectRatio: 0.8,
               children: [
                 _buildAnimatedCard(
                   0,
@@ -209,7 +182,6 @@ body: Stack(
                     ),
                   ),
                 ),
-                // ⭐ EDITED: Removed persons parameter
                 _buildAnimatedCard(
                   1,
                   HoverCard(
@@ -220,8 +192,7 @@ body: Stack(
                       onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => const MissingPersonListPage(), // ⭐ REMOVED: persons parameter
-                        ),
+                            builder: (_) => const MissingPersonListPage()),
                       ),
                     ),
                   ),
@@ -297,7 +268,8 @@ body: Stack(
                       onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(
-                            builder: (_) => const VolunteerVideoPage(volunteerName: 'Volunteer',)),
+                            builder: (_) => const VolunteerVideoPage(
+                                volunteerName: 'Volunteer')),
                       ),
                     ),
                   ),
@@ -307,37 +279,52 @@ body: Stack(
                   HoverCard(
                     child: FunctionCard(
                       title: "Blood Donation",
-                      icon: Icons.bloodtype, // use blood drop icon
+                      icon: Icons.bloodtype,
                       color: Colors.white.withOpacity(0.35),
                       onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) =>
-                              const VolunteerBloodPage(), // Volunteer page
-                        ),
+                            builder: (_) => const VolunteerBloodPage()),
                       ),
                     ),
                   ),
                 ),
                 _buildAnimatedCard(
-  7,
-  HoverCard(
-    child: FunctionCard(
-      title: "Volunteer Report",
-      icon: Icons.report, // report icon
-      color: Colors.white.withOpacity(0.35),
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => VolunteerReportPage(
-            volunteerName: volunteerName, // ⭐ FIXED: Use actual volunteer name
-          ),
-        ),
-      ),
-    ),
-  ),
-),
+                  7,
+                  HoverCard(
+                    child: FunctionCard(
+                      title: "Volunteer Report",
+                      icon: Icons.report,
+                      color: Colors.white.withOpacity(0.35),
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => VolunteerReportPage(
+                              volunteerName: volunteerName),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
 
+                // ⭐ NEW: Evacuation Map card for volunteers
+                _buildAnimatedCard(
+                  8,
+                  HoverCard(
+                    child: FunctionCard(
+                      title: "Evacuation Map",
+                      icon: Icons.map,
+                      color: Colors.white.withOpacity(0.35),
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              const EvacuationMapPage(isAdmin: false),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -346,7 +333,6 @@ body: Stack(
     );
   }
 
-  /// 🔹 Role Switcher Popup Menu
   Widget _roleSwitcher(BuildContext context, List<String> roles) {
     return PopupMenuButton<String>(
       icon: const Icon(Icons.switch_account, color: Colors.white),
@@ -376,42 +362,37 @@ body: Stack(
     );
   }
 
-  /// 🔹 Animated Card
   Widget _buildAnimatedCard(int index, Widget child) {
     final animation = CurvedAnimation(
       parent: _controller,
       curve: Interval(index * 0.1, 1, curve: Curves.easeOutBack),
     );
-
     return FadeTransition(
       opacity: animation,
       child: SlideTransition(
-        position: Tween<Offset>(
-          begin: const Offset(0, 0.2),
-          end: Offset.zero,
-        ).animate(animation),
+        position:
+            Tween<Offset>(begin: const Offset(0, 0.2), end: Offset.zero)
+                .animate(animation),
         child: child,
       ),
     );
   }
 
-  /// 🔹 Functions Dialog
-  void _showFunctionsDialog(BuildContext context) {
-    int totalDonations = donationsList.fold(0, (sum, d) => sum + d.quantity);
-
+  void _showFunctionsDialog(
+      BuildContext context, int totalDonations, String volunteerPlace) {
     showDialog(
       context: context,
       builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         elevation: 8,
         backgroundColor: Colors.white.withOpacity(0.95),
         child: Container(
           padding: const EdgeInsets.all(16),
-          constraints: const BoxConstraints(maxHeight: 400),
+          constraints: const BoxConstraints(maxHeight: 450),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Header
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(vertical: 12),
@@ -424,112 +405,81 @@ body: Stack(
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Center(
-                  child: Text(
-                    "Quick Access",
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold),
-                  ),
+                  child: Text("Quick Access",
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold)),
                 ),
               ),
               const SizedBox(height: 16),
-
-              // Function Items
               Expanded(
                 child: ListView(
                   shrinkWrap: true,
                   children: [
-                    _buildFunctionItem(
-                      context,
-                      "Required Products",
-                      Icons.shopping_cart,
-                      Colors.teal,
-                      () {
-                        Navigator.push(
+                    _buildFunctionItem(context, "Required Products",
+                        Icons.shopping_cart, Colors.teal, () {
+                      Navigator.push(
                           context,
                           MaterialPageRoute(
-                              builder: (_) => ProductListPage(canAdd: true)),
-                        );
-                      },
-                    ),
-                    // ⭐ EDITED: Removed persons parameter from dialog
-                    _buildFunctionItem(
-                      context,
-                      "Missing Persons",
-                      Icons.person_search,
-                      Colors.orange,
-                      
-                      () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const MissingPersonListPage(), // ⭐ REMOVED: persons parameter
-                          ),
-                        );
-                      },
-                    ),
-                    _buildFunctionItem(
-                      context,
-                      "Reported Issues",
-                      Icons.report_problem,
-                      Colors.redAccent,
-                      () {
-                        Navigator.push(
+                              builder: (_) => ProductListPage(canAdd: true)));
+                    }),
+                    _buildFunctionItem(context, "Missing Persons",
+                        Icons.person_search, Colors.orange, () {
+                      Navigator.push(
                           context,
                           MaterialPageRoute(
                               builder: (_) =>
-                                  const IssueListPage(role: "Volunteer")),
-                        );
-                      },
-                    ),
-                    _buildFunctionItem(
-                      context,
-                      "My Group Tasks",
-                      Icons.task,
-                      Colors.deepPurple,
-                      () {
-                        Navigator.push(
+                                  const MissingPersonListPage()));
+                    }),
+                    _buildFunctionItem(context, "Reported Issues",
+                        Icons.report_problem, Colors.redAccent, () {
+                      Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => VolunteerGroupPage(
-                                place: widget.volunteer?.place ?? "Unknown"),
-                          ),
-                        );
-                      },
-                    ),
-                    _buildFunctionItem(
-                      context,
-                      "Donations ($totalDonations)",
-                      Icons.volunteer_activism,
-                      Colors.green,
-                      () {
-                        Navigator.push(
+                              builder: (_) =>
+                                  const IssueListPage(role: "Volunteer")));
+                    }),
+                    _buildFunctionItem(context, "My Group Tasks", Icons.task,
+                        Colors.deepPurple, () {
+                      Navigator.push(
                           context,
                           MaterialPageRoute(
-                              builder: (_) => const VolunteerDonationPage()),
-                        );
-                      },
-                    ),
+                              builder: (_) => VolunteerGroupPage(
+                                  place: volunteerPlace)));
+                    }),
                     _buildFunctionItem(
-                      context,
-                      "Videos",
-                      Icons.video_library,
-                      Colors.indigo,
-                      () {
-                        Navigator.push(
+                        context,
+                        "Donations ($totalDonations)",
+                        Icons.volunteer_activism,
+                        Colors.green, () {
+                      Navigator.push(
                           context,
                           MaterialPageRoute(
-                              builder: (_) => const VolunteerVideoPage(volunteerName: 'Volunteer',)),
-                        );
-                      },
-                    ),
+                              builder: (_) =>
+                                  const VolunteerDonationPage()));
+                    }),
+                    _buildFunctionItem(context, "Videos", Icons.video_library,
+                        Colors.indigo, () {
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const VolunteerVideoPage(
+                                  volunteerName: 'Volunteer')));
+                    }),
+                    // ⭐ NEW in quick access
+                    _buildFunctionItem(context, "Evacuation Map", Icons.map,
+                        Colors.teal, () {
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) =>
+                                  const EvacuationMapPage(isAdmin: false)));
+                    }),
                   ],
                 ),
               ),
-
               const SizedBox(height: 12),
-              // Close Button
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.deepPurple,
@@ -545,11 +495,11 @@ body: Stack(
     );
   }
 
-  /// 🔹 Function Item Builder
   Widget _buildFunctionItem(BuildContext context, String title, IconData icon,
       Color color, VoidCallback onTap) {
     return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shape:
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       margin: const EdgeInsets.symmetric(vertical: 6),
       elevation: 4,
       child: ListTile(
@@ -557,7 +507,8 @@ body: Stack(
           backgroundColor: color,
           child: Icon(icon, color: Colors.white),
         ),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+        title:
+            Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
         trailing: const Icon(Icons.arrow_forward_ios, size: 16),
         onTap: () {
           Navigator.pop(context);

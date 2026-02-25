@@ -9,8 +9,7 @@ import '../widgets/function_card.dart';
 import 'shelter_list_page.dart';
 import 'product_list_page.dart';
 import 'missing_person_list_page.dart';
-// ⭐ REMOVED: import '../data/donation_data.dart'; // DELETE THIS LINE - we use API now!
-import '../api/donation_api.dart'; // ⭐ ADD THIS - use API instead
+import '../api/donation_api.dart';
 import 'video_gallery_page.dart';
 import 'report_issue_page.dart';
 import 'volunteer_registration_page.dart';
@@ -19,6 +18,7 @@ import 'admin_home.dart';
 import 'volunteer_home.dart';
 import '../models/volunteer.dart';
 import 'donation_page.dart';
+import 'evacuation_map_page.dart';           // ⭐ NEW
 
 class UserHome extends StatefulWidget {
   const UserHome({super.key});
@@ -27,11 +27,12 @@ class UserHome extends StatefulWidget {
   State<UserHome> createState() => _UserHomeState();
 }
 
-class _UserHomeState extends State<UserHome> with SingleTickerProviderStateMixin {
+class _UserHomeState extends State<UserHome>
+    with SingleTickerProviderStateMixin {
   bool hasNewIssue = false;
   late AnimationController _controller;
   String? role;
-  int totalDonations = 0; // ⭐ CHANGED: Now loaded from API
+  int totalDonations = 0;
 
   @override
   void initState() {
@@ -40,28 +41,24 @@ class _UserHomeState extends State<UserHome> with SingleTickerProviderStateMixin
         AnimationController(vsync: this, duration: const Duration(seconds: 1))
           ..forward();
     _loadRole();
-    _loadDonationCount(); // ⭐ ADD THIS: Load donation count from API
+    _loadDonationCount();
   }
 
   void _loadRole() {
     var box = Hive.box('authBox');
-    setState(() {
-      role = box.get('role');
-    });
+    setState(() => role = box.get('role'));
   }
 
-  // ⭐ NEW METHOD: Load total donation count from backend
   Future<void> _loadDonationCount() async {
     try {
       final donations = await DonationApi.getApprovedDonations();
-      setState(() {
-        totalDonations = donations.fold(0, (sum, d) => sum + d.quantity);
-      });
-    } catch (e) {
-      // Silently fail - just show 0 if API fails
-      setState(() {
-        totalDonations = 0;
-      });
+      if (mounted) {
+        setState(() {
+          totalDonations = donations.fold(0, (sum, d) => sum + d.quantity);
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => totalDonations = 0);
     }
   }
 
@@ -70,27 +67,19 @@ class _UserHomeState extends State<UserHome> with SingleTickerProviderStateMixin
     box.put('isLoggedIn', false);
     box.put('role', null);
     box.delete('email');
-
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (_) => const UserHome()),
     );
   }
 
-
-  // Animated gradient background
   Widget _buildAnimatedBackground() {
     return AnimatedContainer(
       duration: const Duration(seconds: 5),
-      onEnd: () {
-        setState(() {}); // triggers rebuild for gradient loop
-      },
+      onEnd: () => setState(() {}),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [
-            Colors.white,
-            Colors.blueAccent,
-          ]..shuffle(), // shuffle for subtle animation
+          colors: [Colors.white, Colors.blueAccent]..shuffle(),
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -100,9 +89,6 @@ class _UserHomeState extends State<UserHome> with SingleTickerProviderStateMixin
 
   @override
   Widget build(BuildContext context) {
-    // ⭐ REMOVED: int totalDonations = donationsList.fold(0, (sum, d) => sum + d.quantity);
-    // Now using the totalDonations field loaded from API in initState
-
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.black.withOpacity(0.7),
@@ -111,80 +97,52 @@ class _UserHomeState extends State<UserHome> with SingleTickerProviderStateMixin
         title: Text(
           "RELIFE",
           style: GoogleFonts.bebasNeue(
-            fontSize: 28,
-            letterSpacing: 1.2,
-            color: Colors.white,
-          ),
+              fontSize: 28, letterSpacing: 1.2, color: Colors.white),
         ),
         actions: [
-
-
-          // account switcher
-          if (role == "ADMIN" || role == "VOLUNTEER") // i think this is a dead code need to check it later
+          if (role == "ADMIN" || role == "VOLUNTEER")
             PopupMenuButton<String>(
               color: Colors.white,
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12)),
               icon: const Icon(Icons.switch_account, color: Colors.white),
-
               onSelected: (value) {
                 if (value == "admin") {
                   Navigator.pushReplacement(
-                    context,
-                    _createRoute(const AdminHome()),
-                  );
-                } 
-                else if (value == "user") {
+                      context, _createRoute(const AdminHome()));
+                } else if (value == "user") {
                   Navigator.pushReplacement(
-                    context,
-                    _createRoute(const UserHome()),
-                  );
-                } 
-                else if (value == "volunteer") {
+                      context, _createRoute(const UserHome()));
+                } else if (value == "volunteer") {
                   Volunteer volunteerToOpen;
-
-
-
                   if (role == "VOLUNTEER") {
                     var volunteersBox = Hive.box('volunteersBox');
                     String? email = Hive.box('authBox').get('email');
-
                     if (email != null && volunteersBox.containsKey(email)) {
                       var data = volunteersBox.get(email);
                       volunteerToOpen = Volunteer(
-                        name: data['name'],
-                        place: data['place'],
-                        email: email,
-                        password: data['password'],
-                      );
-                    } 
-                    else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text("Volunteer data not found!")),
-                      );
+                          name: data['name'],
+                          place: data['place'],
+                          email: email,
+                          password: data['password']);
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                          content: Text("Volunteer data not found!")));
                       return;
                     }
-                  } 
-                  else {
+                  } else {
                     volunteerToOpen = Volunteer(
-                      name: "Admin Volunteer",
-                      place: "Admin Center",
-                      email: "admin@admin.com",
-                      password: "admin123",
-                    );
+                        name: "Admin Volunteer",
+                        place: "Admin Center",
+                        email: "admin@admin.com",
+                        password: "admin123");
                   }
-
                   Navigator.pushReplacement(
-                    context,
-                    _createRoute(VolunteerHome(volunteer: volunteerToOpen)),
-                  );
-
+                      context,
+                      _createRoute(
+                          VolunteerHome(volunteer: volunteerToOpen)));
                 }
               },
-
-              
-
-
               itemBuilder: (context) {
                 List<PopupMenuEntry<String>> items = [];
                 if (role == "ADMIN") {
@@ -198,22 +156,18 @@ class _UserHomeState extends State<UserHome> with SingleTickerProviderStateMixin
                 return items;
               },
             ),
-
-
-
-
           if (role != null && role != "USER")
             TextButton(
               onPressed: _signOut,
-              child: const Text("Sign Out", style: TextStyle(color: Colors.white)),
+              child: const Text("Sign Out",
+                  style: TextStyle(color: Colors.white)),
             )
           else
             TextButton(
-              onPressed: () => Navigator.push(
-                context,
-                _createRoute(const LoginPage()),
-              ),
-              child: const Text("Login", style: TextStyle(color: Colors.white)),
+              onPressed: () =>
+                  Navigator.push(context, _createRoute(const LoginPage())),
+              child: const Text("Login",
+                  style: TextStyle(color: Colors.white)),
             ),
           IconButton(
             icon: const Icon(Icons.menu, color: Colors.white),
@@ -227,193 +181,185 @@ class _UserHomeState extends State<UserHome> with SingleTickerProviderStateMixin
           Padding(
             padding: const EdgeInsets.all(16),
             child: GridView.count(
-  crossAxisCount: 2,
-  crossAxisSpacing: 16,
-  mainAxisSpacing: 16,
-  childAspectRatio: 0.8,
-  children: [
-    _buildAnimatedCard(
-      0,
-      FunctionCard(
-        title: "Shelters",
-        icon: Icons.home,
-        color: Colors.white,
-        textSize: 18,
-        fontWeight: FontWeight.bold,
-        onTap: () => Navigator.push(
-          context,
-          _createRoute(const ShelterListPage()),
-        ),
-      ),
-    ),
-    _buildAnimatedCard(
-      1,
-      FunctionCard(
-        title: "Required Products",
-        icon: Icons.shopping_cart,
-        color: Colors.white,
-        textSize: 18,
-        fontWeight: FontWeight.bold,
-        onTap: () => Navigator.push(
-          context,
-          _createRoute(ProductListPage(canAdd: false)),
-        ),
-      ),
-    ),
-    _buildAnimatedCard(
-      2,
-      FunctionCard(
-        title: "Payment",
-        icon: Icons.payment,
-        color: Colors.white,
-        textSize: 18,
-        fontWeight: FontWeight.bold,
-        onTap: () => Navigator.push(
-          context,
-          _createRoute(const DonationPage()),
-        ),
-      ),
-    ),
-    // ⭐ EDITED: Removed persons parameter
-    _buildAnimatedCard(
-      3,
-      FunctionCard(
-        title: "Missing Persons",
-        icon: Icons.person_search,
-        color: Colors.white,
-        textSize: 18,
-        fontWeight: FontWeight.bold,
-        onTap: () => Navigator.push(
-          context,
-          _createRoute(
-            const MissingPersonListPage(), // ⭐ REMOVED: persons parameter
-          ),
-        ),
-      ),
-    ),
-    _buildAnimatedCard(
-      4,
-      FunctionCard(
-        title: "Report an Issue",
-        icon: Icons.report_problem,
-        color: Colors.white,
-                textSize: 18,
-        fontWeight: FontWeight.bold,
-        badge: hasNewIssue
-            ? Container(
-                width: 14,
-                height: 14,
-                decoration: const BoxDecoration(
-                  color: Colors.red,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.redAccent,
-                      blurRadius: 8,
-                      spreadRadius: 2,
-                    )
-                  ],
+              crossAxisCount: 2,
+              crossAxisSpacing: 16,
+              mainAxisSpacing: 16,
+              childAspectRatio: 0.8,
+              children: [
+                _buildAnimatedCard(
+                  0,
+                  FunctionCard(
+                    title: "Shelters",
+                    icon: Icons.home,
+                    color: Colors.white,
+                    textSize: 18,
+                    fontWeight: FontWeight.bold,
+                    onTap: () => Navigator.push(
+                        context, _createRoute(const ShelterListPage())),
+                  ),
                 ),
-              )
-            : null,
-        onTap: () async {
-          final submitted = await Navigator.push(
-            context,
-            _createRoute(const ReportIssuePage()),
-          );
-          if (submitted == true) {
-            setState(() => hasNewIssue = true);
-          }
-        },
-      ),
-    ),
-    _buildAnimatedCard(
-      5,
-      FunctionCard(
-        title: "Volunteer Registration",
-        icon: Icons.group_add,
-        color: Colors.white,
-                textSize: 18,
-        fontWeight: FontWeight.bold,
-        onTap: () => Navigator.push(
-          context,
-          _createRoute(const VolunteerRegistrationPage()),
-        ),
-      ),
-    ),
-    _buildAnimatedCard(
-      6,
-      FunctionCard(
-        title: "Videos",
-        icon: Icons.video_library,
-        color: Colors.white,
-                textSize: 18,
-        fontWeight: FontWeight.bold,
-        onTap: () => Navigator.push(
-          context,
-          _createRoute(const VideoGalleryPage()),
-        ),
-      ),
-    ),
-    _buildAnimatedCard(
-      7,
-      FunctionCard(
-        title: "Blood Donation",
-        icon: Icons.bloodtype,
-        color: Colors.white,
-                textSize: 18,
-        fontWeight: FontWeight.bold,
-        onTap: () => Navigator.push(
-          context,
-          _createRoute(const UserBloodPage()),
-        ),
-      ),
-    ),
-    _buildAnimatedCard(
-      8,
-      FunctionCard(
-        title: "Donations ($totalDonations)",
-        icon: Icons.volunteer_activism,
-        color: Colors.white,
-                textSize: 18,
-        fontWeight: FontWeight.bold,
-        onTap: () async {
-          var box = Hive.box('authBox');
-          String userName = box.get('name') ?? "Guest";
-          String userContact = box.get('contact') ?? "N/A";
-          String userAddress = box.get('address') ?? "N/A";
+                _buildAnimatedCard(
+                  1,
+                  FunctionCard(
+                    title: "Required Products",
+                    icon: Icons.shopping_cart,
+                    color: Colors.white,
+                    textSize: 18,
+                    fontWeight: FontWeight.bold,
+                    onTap: () => Navigator.push(
+                        context,
+                        _createRoute(ProductListPage(canAdd: false))),
+                  ),
+                ),
+                _buildAnimatedCard(
+                  2,
+                  FunctionCard(
+                    title: "Payment",
+                    icon: Icons.payment,
+                    color: Colors.white,
+                    textSize: 18,
+                    fontWeight: FontWeight.bold,
+                    onTap: () => Navigator.push(
+                        context, _createRoute(const DonationPage())),
+                  ),
+                ),
+                _buildAnimatedCard(
+                  3,
+                  FunctionCard(
+                    title: "Missing Persons",
+                    icon: Icons.person_search,
+                    color: Colors.white,
+                    textSize: 18,
+                    fontWeight: FontWeight.bold,
+                    onTap: () => Navigator.push(
+                        context,
+                        _createRoute(const MissingPersonListPage())),
+                  ),
+                ),
+                _buildAnimatedCard(
+                  4,
+                  FunctionCard(
+                    title: "Report an Issue",
+                    icon: Icons.report_problem,
+                    color: Colors.white,
+                    textSize: 18,
+                    fontWeight: FontWeight.bold,
+                    badge: hasNewIssue
+                        ? Container(
+                            width: 14,
+                            height: 14,
+                            decoration: const BoxDecoration(
+                              color: Colors.red,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                    color: Colors.redAccent,
+                                    blurRadius: 8,
+                                    spreadRadius: 2)
+                              ],
+                            ),
+                          )
+                        : null,
+                    onTap: () async {
+                      final submitted = await Navigator.push(
+                          context, _createRoute(const ReportIssuePage()));
+                      if (submitted == true) {
+                        setState(() => hasNewIssue = true);
+                      }
+                    },
+                  ),
+                ),
+                _buildAnimatedCard(
+                  5,
+                  FunctionCard(
+                    title: "Volunteer Registration",
+                    icon: Icons.group_add,
+                    color: Colors.white,
+                    textSize: 18,
+                    fontWeight: FontWeight.bold,
+                    onTap: () => Navigator.push(
+                        context,
+                        _createRoute(const VolunteerRegistrationPage())),
+                  ),
+                ),
+                _buildAnimatedCard(
+                  6,
+                  FunctionCard(
+                    title: "Videos",
+                    icon: Icons.video_library,
+                    color: Colors.white,
+                    textSize: 18,
+                    fontWeight: FontWeight.bold,
+                    onTap: () => Navigator.push(
+                        context, _createRoute(const VideoGalleryPage())),
+                  ),
+                ),
+                _buildAnimatedCard(
+                  7,
+                  FunctionCard(
+                    title: "Blood Donation",
+                    icon: Icons.bloodtype,
+                    color: Colors.white,
+                    textSize: 18,
+                    fontWeight: FontWeight.bold,
+                    onTap: () => Navigator.push(
+                        context, _createRoute(const UserBloodPage())),
+                  ),
+                ),
+                _buildAnimatedCard(
+                  8,
+                  FunctionCard(
+                    title: "Donations ($totalDonations)",
+                    icon: Icons.volunteer_activism,
+                    color: Colors.white,
+                    textSize: 18,
+                    fontWeight: FontWeight.bold,
+                    onTap: () async {
+                      var box = Hive.box('authBox');
+                      String userName = box.get('name') ?? "Guest";
+                      String userContact = box.get('contact') ?? "N/A";
+                      String userAddress = box.get('address') ?? "N/A";
+                      await Navigator.push(
+                          context,
+                          _createRoute(UserDonationPage(
+                            userName: userName,
+                            userContact: userContact,
+                            userAddress: userAddress,
+                          )));
+                      await _loadDonationCount();
+                    },
+                  ),
+                ),
 
-          await Navigator.push(
-            context,
-            _createRoute(
-              UserDonationPage(
-                userName: userName,
-                userContact: userContact,
-                userAddress: userAddress,
-              ),
+                // ⭐ NEW: Evacuation Map card for users
+                _buildAnimatedCard(
+                  9,
+                  FunctionCard(
+                    title: "Evacuation Map",
+                    icon: Icons.map,
+                    color: Colors.white,
+                    textSize: 18,
+                    fontWeight: FontWeight.bold,
+                    onTap: () => Navigator.push(
+                      context,
+                      _createRoute(
+                          const EvacuationMapPage(isAdmin: false)),
+                    ),
+                  ),
+                ),
+              ],
             ),
-          );
-          // ⭐ CHANGED: Reload donation count after returning from donation page
-          await _loadDonationCount();
-          setState(() {});
-        },
-      ),
-    ),
-  ],
-)
           ),
         ],
       ),
     );
   }
 
-  // Animated card builder
   Widget _buildAnimatedCard(int index, Widget child) {
     final animation = CurvedAnimation(
       parent: _controller,
       curve: Interval(index * 0.1, 1, curve: Curves.easeOutBack),
     );
-
     return FadeTransition(
       opacity: animation,
       child: ScaleTransition(
@@ -434,25 +380,21 @@ class _UserHomeState extends State<UserHome> with SingleTickerProviderStateMixin
     );
   }
 
-  // Custom page transition
   PageRouteBuilder _createRoute(Widget page) {
     return PageRouteBuilder(
       transitionDuration: const Duration(milliseconds: 600),
       pageBuilder: (_, __, ___) => page,
       transitionsBuilder: (_, animation, __, child) {
         return ScaleTransition(
-          scale: CurvedAnimation(parent: animation, curve: Curves.easeOutBack),
-          child: FadeTransition(
-            opacity: animation,
-            child: child,
-          ),
+          scale: CurvedAnimation(
+              parent: animation, curve: Curves.easeOutBack),
+          child: FadeTransition(opacity: animation, child: child),
         );
       },
     );
   }
 
   void _showFunctionsDialog(BuildContext context) {
-
     showDialog(
       context: context,
       builder: (context) => ScaleTransition(
@@ -460,39 +402,39 @@ class _UserHomeState extends State<UserHome> with SingleTickerProviderStateMixin
             parent: _controller, curve: Curves.elasticOut),
         child: AlertDialog(
           backgroundColor: Colors.white.withOpacity(0.95),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16)),
           title: const Text("Quick Access"),
           content: SizedBox(
             width: double.maxFinite,
             child: ListView(
               shrinkWrap: true,
               children: [
+                _buildFunctionItem(context, "Shelters", Icons.home, () {
+                  Navigator.push(
+                      context, _createRoute(const ShelterListPage()));
+                }),
                 _buildFunctionItem(
-                    context, "Shelters", Icons.home, () {
-                  Navigator.push(context,
-                      _createRoute(const ShelterListPage()));
-                }),
-                _buildFunctionItem(context, "Required Products",
-                    Icons.shopping_cart, () {
-                  Navigator.push(context,
-                      _createRoute(ProductListPage(canAdd: false)));
-                }),
-                // ⭐ EDITED: Removed persons parameter from dialog navigation
-                _buildFunctionItem(context, "Missing Persons",
-                    Icons.person_search, () {
+                    context, "Required Products", Icons.shopping_cart, () {
                   Navigator.push(
                       context,
-                      _createRoute(const MissingPersonListPage())); // ⭐ REMOVED: persons parameter
+                      _createRoute(ProductListPage(canAdd: false)));
                 }),
-                _buildFunctionItem(context, "Report an Issue",
-                    Icons.report_problem, () {
+                _buildFunctionItem(
+                    context, "Missing Persons", Icons.person_search, () {
+                  Navigator.push(
+                      context,
+                      _createRoute(const MissingPersonListPage()));
+                }),
+                _buildFunctionItem(
+                    context, "Report an Issue", Icons.report_problem, () {
                   Navigator.push(
                       context, _createRoute(const ReportIssuePage()));
                 }),
-                _buildFunctionItem(context, "Volunteer Registration",
-                    Icons.group_add, () {
-                  Navigator.push(context,
+                _buildFunctionItem(
+                    context, "Volunteer Registration", Icons.group_add, () {
+                  Navigator.push(
+                      context,
                       _createRoute(const VolunteerRegistrationPage()));
                 }),
                 _buildFunctionItem(
@@ -500,22 +442,29 @@ class _UserHomeState extends State<UserHome> with SingleTickerProviderStateMixin
                   Navigator.push(
                       context, _createRoute(const VideoGalleryPage()));
                 }),
+                // ⭐ NEW in quick access
+                _buildFunctionItem(
+                    context, "Evacuation Map", Icons.map, () {
+                  Navigator.push(
+                      context,
+                      _createRoute(
+                          const EvacuationMapPage(isAdmin: false)));
+                }),
               ],
             ),
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("Close"),
-            ),
+                onPressed: () => Navigator.pop(context),
+                child: const Text("Close")),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildFunctionItem(
-      BuildContext context, String title, IconData icon, VoidCallback onTap) {
+  Widget _buildFunctionItem(BuildContext context, String title,
+      IconData icon, VoidCallback onTap) {
     return ListTile(
       leading: Icon(icon, color: Colors.deepPurple),
       title: Text(title),
@@ -525,7 +474,7 @@ class _UserHomeState extends State<UserHome> with SingleTickerProviderStateMixin
       },
     );
   }
-  
+
   @override
   void dispose() {
     _controller.dispose();
