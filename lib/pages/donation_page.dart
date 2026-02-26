@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../utils/validators.dart';
+import '../models/payment.dart';          // ⭐ NEW
+import '../api/payment_api.dart';         // ⭐ NEW
 import '../services/payment_service.dart';
 
-/// A simple donation page that lets the user enter any desired amount and
-/// proceed to Razorpay checkout using `PaymentService`.
 class DonationPage extends StatefulWidget {
   const DonationPage({Key? key}) : super(key: key);
 
@@ -32,7 +31,6 @@ class _DonationPageState extends State<DonationPage> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
-    // Parse amount (allow commas and trim)
     final raw = _amountController.text.trim().replaceAll(',', '');
     final amount = double.tryParse(raw);
     if (amount == null || amount <= 0) {
@@ -45,6 +43,7 @@ class _DonationPageState extends State<DonationPage> {
     setState(() => _loading = true);
 
     try {
+      // ── Step 1: Open Razorpay checkout ─────────────────────────────────────
       final result = await _paymentService.openCheckout(
         amount: amount,
         contact: _contactController.text.trim(),
@@ -52,29 +51,46 @@ class _DonationPageState extends State<DonationPage> {
         timeout: const Duration(minutes: 5),
       );
 
-      if (result != null) {
-        // Payment success
-        if (!mounted) return;
-        showDialog<void>(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            title: const Text('Payment successful'),
-            content: Text('Payment ID: ${result.paymentId}'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(),
-                child: const Text('OK'),
-              ),
-            ],
-          ),
-        );
-      } else {
-        // Timeout or cancelled
+      if (result == null) {
+        // Timeout or cancelled — don't save anything
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Payment timed out or was cancelled')),
         );
+        return;
       }
+
+      // ── Step 2: Save the payment record to backend ──────────────────────────
+      try {
+        await PaymentApi.createPayment(
+          Payment(
+            razorpayPaymentId: result.paymentId ?? '',
+            amount: amount,
+            contact: _contactController.text.trim(),
+            email: _emailController.text.trim(),
+            status: 'SUCCESS',
+          ),
+        );
+      } catch (_) {
+        // Backend save failed — payment still succeeded on Razorpay,
+        // so just log silently and don't block the success dialog
+      }
+
+      // ── Step 3: Show success dialog ─────────────────────────────────────────
+      if (!mounted) return;
+      showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Payment Successful'),
+          content: Text('Payment ID: ${result.paymentId}'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -112,8 +128,7 @@ class _DonationPageState extends State<DonationPage> {
                 ),
                 validator: (v) {
                   if (v == null || v.trim().isEmpty) return 'Enter an amount';
-                  final cleaned = v.trim().replaceAll(',', '');
-                  final val = double.tryParse(cleaned);
+                  final val = double.tryParse(v.trim().replaceAll(',', ''));
                   if (val == null || val <= 0) return 'Enter a valid amount > 0';
                   return null;
                 },
@@ -135,12 +150,10 @@ class _DonationPageState extends State<DonationPage> {
                   labelText: 'Email (optional)',
                   border: OutlineInputBorder(),
                 ),
-                // Email
                 validator: (v) {
                   if (v == null || v.trim().isEmpty) return null;
-                  final email = v.trim();
                   final emailRegex = RegExp(r"^[^@\s]+@[^@\s]+\.[^@\s]+$");
-                  if (!emailRegex.hasMatch(email)) return 'Enter a valid email';
+                  if (!emailRegex.hasMatch(v.trim())) return 'Enter a valid email';
                   return null;
                 },
               ),

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- Allow cleartext HTTP to your local Spring Boot server.
+         Android 9+ blocks HTTP by default — without this VideoPlayerController
+         silently fails to load any http:// URL even if the server is reachable. -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">192.168.0.135</domain>
+    </domain-config>
+</network-security-config>
