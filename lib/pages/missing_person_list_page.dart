@@ -28,7 +28,7 @@ class _MissingPersonListPageState extends State<MissingPersonListPage> {
   Future<void> _loadPersons() async {
     setState(() => _isLoading = true);
     try {
-      final persons = await _api.getAll();
+      final persons = await MissingPersonApi.getAll();
       setState(() {
         _persons = persons;
         _isLoading = false;
@@ -50,7 +50,7 @@ class _MissingPersonListPageState extends State<MissingPersonListPage> {
   Future<void> _toggleFound(MissingPerson person) async {
     try {
       // Update in backend first
-      await _api.updateStatus(int.parse(person.id), !person.isFound);
+      await MissingPersonApi.updateStatus(int.parse(person.id), !person.isFound);
       
       // Update UI after successful backend update
       setState(() {

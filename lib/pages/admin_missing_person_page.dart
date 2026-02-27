@@ -27,7 +27,7 @@ class _AdminMissingPersonPageState extends State<AdminMissingPersonPage> {
   Future<void> _loadPersons() async {
     setState(() => _isLoading = true);
     try {
-      final persons = await _api.getAll();
+      final persons = await MissingPersonApi.getAll();
       setState(() {
         _persons = persons;
         _isLoading = false;
@@ -71,7 +71,7 @@ class _AdminMissingPersonPageState extends State<AdminMissingPersonPage> {
 
     try {
       // ⭐ ADDED: Delete from backend
-      await _api.delete(int.parse(person.id));
+      await MissingPersonApi.delete(int.parse(person.id));
       
       // Remove from local list
       setState(() {

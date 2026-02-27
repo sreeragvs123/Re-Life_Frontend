@@ -1,43 +1,42 @@
+// lib/api/blood_request_service.dart
+
 import 'package:dio/dio.dart';
 import '../models/blood_request.dart';
-import '../api/dio_client.dart';
+import '../api/api_client.dart';
+import '../utils/api_constants.dart';
 
 class BloodRequestService {
 
-  /// GET all blood requests
   static Future<List<BloodRequest>> fetchBloodRequests() async {
     try {
-      final Response response =
-      await DioClient.dio.get("/blood-requests");
-
-      final List data = response.data;
-      return data.map((e) => BloodRequest.fromJson(e)).toList();
+      final response = await DioClient.dio.get(ApiConstants.getAllBloodRequests);
+      return (response.data as List)
+          .map((e) => BloodRequest.fromJson(e))
+          .toList();
     } on DioException catch (e) {
-      throw Exception(e.response?.data ?? "Failed to fetch data");
+      throw Exception(e.response?.data ?? 'Failed to fetch blood requests');
     }
   }
 
-  /// POST blood request
   static Future<void> createBloodRequest(BloodRequest request) async {
     try {
       await DioClient.dio.post(
-        "/blood-requests/post",
+        ApiConstants.createBloodRequest,
         data: request.toJson(),
       );
     } on DioException catch (e) {
-      throw Exception(e.response?.data ?? "Failed to create request");
+      throw Exception(e.response?.data ?? 'Failed to create blood request');
     }
   }
 
-  /// DELETE blood request
   static Future<void> deleteBloodRequest(int id) async {
     try {
       await DioClient.dio.delete(
-        "/blood-requests/delete",
-        queryParameters: {"id": id},
+        ApiConstants.deleteBloodRequest,
+        queryParameters: {'id': id},
       );
     } on DioException catch (e) {
-      throw Exception(e.response?.data ?? "Failed to delete request");
+      throw Exception(e.response?.data ?? 'Failed to delete blood request');
     }
   }
 }

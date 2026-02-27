@@ -46,7 +46,7 @@ class _ReportMissingPersonPageState extends State<ReportMissingPersonPage> {
         );
         
         // ⭐ ADDED: Save to backend
-        await _api.create(newPerson);
+        await MissingPersonApi.create(newPerson);
         
         setState(() => _isSubmitting = false);
         
