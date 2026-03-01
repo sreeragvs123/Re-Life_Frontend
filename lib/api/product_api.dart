@@ -1,17 +1,16 @@
 // lib/api/product_api.dart
-//
-// All product-request CRUD operations — talks to Spring Boot /api/products
 
 import 'package:dio/dio.dart';
+import 'api_client.dart';          // ← FIX: use authenticated DioClient
 import '../utils/api_constants.dart';
 import '../models/product_request.dart';
 
 class ProductApi {
-  static final Dio _dio = Dio(BaseOptions(
-    connectTimeout: const Duration(seconds: 10),
-    receiveTimeout: const Duration(seconds: 10),
-    headers: {'Content-Type': 'application/json'},
-  ));
+  // FIX: was creating a bare Dio() with no auth headers.
+  // /api/products requires a valid JWT (WebSecurityConfig: anyRequest().authenticated())
+  // so all calls were returning 401 silently.
+  // DioClient.dio automatically attaches "Authorization: Bearer <token>" from Hive.
+  static final Dio _dio = DioClient.dio;
 
   // ── GET /api/products ──────────────────────────────────────────────────────
   static Future<List<ProductRequest>> getAllProducts() async {
@@ -40,7 +39,7 @@ class ProductApi {
   // ── DELETE /api/products/{id} ──────────────────────────────────────────────
   static Future<void> deleteProduct(int id) async {
     try {
-      await _dio.delete("${ApiConstants.deleteProduct}/$id");
+      await _dio.delete('${ApiConstants.deleteProduct}/$id');
     } on DioException catch (e) {
       throw _handleError(e);
     }
@@ -51,7 +50,7 @@ class ProductApi {
       int id, ProductRequest product) async {
     try {
       final response = await _dio.put(
-        "${ApiConstants.updateProduct}/$id",
+        '${ApiConstants.updateProduct}/$id',
         data: product.toJson(),
       );
       return ProductRequest.fromJson(response.data);
@@ -62,7 +61,10 @@ class ProductApi {
 
   // ── Error helper ───────────────────────────────────────────────────────────
   static Exception _handleError(DioException e) {
-    final msg = e.response?.data?['message'] ?? e.message ?? 'Unknown error';
+    final body = e.response?.data;
+    final msg  = (body is Map ? body['message'] : null)
+        ?? e.message
+        ?? 'Unknown error';
     return Exception('ProductApi error: $msg');
   }
 }

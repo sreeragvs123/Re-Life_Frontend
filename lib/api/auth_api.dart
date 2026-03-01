@@ -7,6 +7,7 @@ import '../utils/api_constants.dart';
 import '../models/auth_models.dart';
 
 class AuthApi {
+  // Use a plain Dio for auth calls (no interceptor loop)
   static final Dio _dio = Dio(BaseOptions(
     connectTimeout: const Duration(seconds: 10),
     receiveTimeout: const Duration(seconds: 10),
@@ -17,19 +18,16 @@ class AuthApi {
   static Future<LoginResponse> login(LoginRequest request) async {
     try {
       debugPrint('🔐 LOGIN → ${ApiConstants.login}');
-      debugPrint('   body: ${request.toJson()}');
-
       final response = await _dio.post(
         ApiConstants.login,
         data: request.toJson(),
       );
-
       debugPrint('✅ LOGIN response: ${response.data}');
       final loginResp = LoginResponse.fromJson(response.data);
       await _saveSession(loginResp);
       return loginResp;
     } on DioException catch (e) {
-      debugPrint('❌ LOGIN error: status=${e.response?.statusCode} body=${e.response?.data}');
+      debugPrint('❌ LOGIN error: ${e.response?.statusCode} ${e.response?.data}');
       throw _handleError(e);
     }
   }
@@ -38,21 +36,16 @@ class AuthApi {
   static Future<void> signUp(SignUpRequest request) async {
     try {
       debugPrint('📝 SIGNUP → ${ApiConstants.signUp}');
-      debugPrint('   body: ${request.toJson()}');
-
-      final response = await _dio.post(
-        ApiConstants.signUp,
-        data: request.toJson(),
-      );
-
-      debugPrint('✅ SIGNUP response: status=${response.statusCode} body=${response.data}');
+      await _dio.post(ApiConstants.signUp, data: request.toJson());
     } on DioException catch (e) {
-      debugPrint('❌ SIGNUP error: status=${e.response?.statusCode} body=${e.response?.data} msg=${e.message}');
+      debugPrint('❌ SIGNUP error: ${e.response?.statusCode} ${e.response?.data}');
       throw _handleError(e);
     }
   }
 
   // ── POST /api/auth/refresh ─────────────────────────────────────────────────
+  // FIX: Sends refreshToken in JSON body — NOT in a cookie.
+  // Cookies are a browser mechanism and don't work in Flutter mobile.
   static Future<String> refreshToken() async {
     final box          = Hive.box('authBox');
     final refreshToken = box.get('refreshToken') as String?;
@@ -61,18 +54,25 @@ class AuthApi {
     try {
       final response = await _dio.post(
         ApiConstants.refresh,
-        data: {'refreshToken': refreshToken},
+        data: {'refreshToken': refreshToken},   // ← body, not cookie
       );
-      final newAccess = response.data['accessToken'] as String;
-      await box.put('accessToken', newAccess);
-      return newAccess;
+
+      final newAccessToken  = response.data['accessToken']  as String;
+      final newRefreshToken = response.data['refreshToken'] as String?;
+
+      await box.put('accessToken', newAccessToken);
+      if (newRefreshToken != null) {
+        await box.put('refreshToken', newRefreshToken);
+      }
+
+      return newAccessToken;
     } on DioException catch (e) {
-      debugPrint('❌ REFRESH error: status=${e.response?.statusCode} body=${e.response?.data}');
+      debugPrint('❌ REFRESH error: ${e.response?.statusCode} ${e.response?.data}');
       throw _handleError(e);
     }
   }
 
-  // ── Sign out ───────────────────────────────────────────────────────────────
+  // ── Sign out — clear all session data from Hive ───────────────────────────
   static Future<void> signOut() async {
     final box = Hive.box('authBox');
     await box.put('isLoggedIn',   false);
@@ -86,7 +86,7 @@ class AuthApi {
     debugPrint('👋 Signed out — session cleared');
   }
 
-  // ── Helpers ────────────────────────────────────────────────────────────────
+  // ── Save session to Hive after successful login ───────────────────────────
   static Future<void> _saveSession(LoginResponse resp) async {
     final box = Hive.box('authBox');
     await box.put('isLoggedIn',   true);
@@ -97,8 +97,10 @@ class AuthApi {
     await box.put('name',         resp.name);
     await box.put('userId',       resp.id);
     await box.put('place',        resp.place ?? '');
+    debugPrint('✅ Session saved — role=${resp.role} email=${resp.email}');
   }
 
+  // ── Error handler ──────────────────────────────────────────────────────────
   static Exception _handleError(DioException e) {
     final status = e.response?.statusCode;
     if (e.type == DioExceptionType.connectionTimeout ||
@@ -112,7 +114,6 @@ class AuthApi {
     if (status == 409) {
       return Exception('Email already registered');
     }
-    // Try to get message from backend error response body
     final body = e.response?.data;
     if (body is Map) {
       final msg = body['message'] ?? body['error'] ?? body.toString();
